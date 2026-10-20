@@ -1,0 +1,23 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/web-search"
+  to = "/.netlify/functions/web-search"
+  status = 200
+
+[[redirects]]
+  from = "/api/gemini-debug"
+  to = "/.netlify/functions/gemini-debug"
+  status = 200
+
+[[redirects]]
+  from = "/api/gemini-fix"
+  to = "/.netlify/functions/gemini-fix"
+  status = 200
+
+[[redirects]]
+  from = "/api/room-relay"
+  to = "/.netlify/functions/room-relay"
+  status = 200

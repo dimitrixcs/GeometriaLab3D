@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Geometria Lab 3D — V68 modelos sólidos e personagens aprimorados</title>
+<link rel="stylesheet" href="./style.css?v=68.0">
+<script src="https://cdn.jsdelivr.net/npm/three@0.151.3/build/three.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/three@0.151.3/build/three.min.js'"></script>
+<script src="./data.js?v=68.0"></script>
+<script>
+(function(){
+  window.__GL_WEBGL_AVAILABLE__=false;
+  try {
+    const c=document.createElement("canvas");
+    const gl=c.getContext("webgl2",{failIfMajorPerformanceCaveat:false}) || c.getContext("webgl",{failIfMajorPerformanceCaveat:false}) || c.getContext("experimental-webgl");
+    window.__GL_WEBGL_AVAILABLE__=!!gl;
+    if(gl&&gl.getExtension) gl.getExtension("WEBGL_lose_context");
+  } catch(e) { window.__GL_WEBGL_ERROR__=String(e&&e.message||e); }
+})();
+</script>
+</head>
+<body>
+<div id="game"></div>
+
+<section id="startScreen" class="screen game-start-screen">
+  <div class="start-shell">
+    <header class="start-topbar">
+      <div class="brand-mark"><span class="brand-symbol">✦</span><div><b>GEOMETRIA LAB <span>3D</span></b><small>PLAY • BUILD • LEARN • BATTLE</small></div></div>
+      <div class="top-status"><span class="status-dot"></span><span>SYSTEM READY</span><span class="status-divider"></span><span>WEBGL</span><span class="status-ok">●</span></div>
+    </header>
+
+    <div class="start-layout">
+      <main class="start-main">
+        <div class="hero-row">
+          <div>
+            <div class="eyebrow">GAME HUB</div>
+            <h1>ESCOLHA SEU <strong>JOGO</strong></h1>
+            <p>Escolha um modo e aperte o botão para começar a jogar.</p>
+          </div>
+          <div class="player-badge progression-badge" aria-label="Progressão do jogador">
+            <div class="progression-summary"><span class="level-chip">LV <b id="startLevel">1</b></span><div class="progression-total"><b id="startXp">0</b><span>XP TOTAL</span></div></div>
+            <div class="progression-track"><i id="startXpBar"></i></div>
+            <small id="startXpNext" class="progression-caption">0 / 250 XP para o nível 2</small>
+          </div>
+        </div>
+
+        <section class="mode-section">
+          <div class="section-heading"><span>01</span><div><b>ATIVIDADE</b><small>Selecione como você quer jogar</small></div></div>
+          <div class="mode-grid">
+            <button class="mode-card" data-mode="sandbox"><div class="mode-icon">▦</div><div class="mode-text"><b>SANDBOX</b><small>Construa, derrube, empilhe e experimente com as formas.</small></div><span class="mode-arrow">↗</span></button>
+            <button class="mode-card" data-mode="learning"><div class="mode-icon">△</div><div class="mode-text"><b>APRENDIZADO</b><small>Explore as 40 figuras, fórmulas e desafios guiados.</small></div><span class="mode-arrow">↗</span></button>
+            <button class="mode-card selected" data-mode="combat"><div class="mode-icon">⚔</div><div class="mode-text"><b>COMBATE</b><small>Resolva questões para atacar e derrotar os Geo-Beasts.</small></div><span class="mode-arrow">↗</span></button>
+          </div>
+        </section>
+
+        <section class="mission-preview-panel">
+          <div class="section-heading"><span>02</span><div><b>MISSÕES ATIVAS</b><small id="missionPreviewSubtitle">Desafios da sua sessão</small></div><span class="mission-live">● AO VIVO</span></div>
+          <div id="missionPreview" class="mission-preview-grid"></div>
+        </section>
+
+        <section class="play-config-panel">
+          <div class="section-heading"><span>03</span><div><b>TIPO DE PARTIDA</b><small>Jogue sozinho ou entre em uma sala</small></div></div>
+          <div class="network-choice">
+            <button id="soloBtn" class="net-choice active"><span>◉</span> JOGAR SOLO</button>
+            <button id="multiBtn" class="net-choice"><span>◎</span> MULTIPLAYER</button>
+          </div>
+          <div id="roomControls" class="room-controls hidden">
+            <div class="room-actions"><input id="hostCode" maxlength="8" autocomplete="off" spellcheck="false" placeholder="CÓDIGO DA SALA"><input id="hostPassword" type="password" maxlength="24" autocomplete="new-password" placeholder="SENHA"><button id="createRoom" class="mini">CRIAR SALA</button></div>
+            <div class="room-actions"><input id="roomInput" maxlength="8" autocomplete="off" spellcheck="false" placeholder="CÓDIGO PARA ENTRAR"><input id="joinPassword" type="password" maxlength="24" autocomplete="current-password" placeholder="SENHA"><button id="joinRoom" class="mini">ENTRAR</button></div>
+            <div id="roomStatus">Crie uma sala ou entre usando código + senha.</div>
+            <small class="room-help">O host permanece conectado para manter a sala. Compartilhe somente o código e a senha com quem vai jogar.</small>
+          </div>
+          <div id="difficultyBox" class="difficulty"><span>DIFICULDADE</span><button class="diff active" data-difficulty="easy">FÁCIL</button><button class="diff" data-difficulty="medium">MÉDIO</button><button class="diff" data-difficulty="hard">DIFÍCIL</button><button class="diff" data-difficulty="master">MESTRE</button><small id="difficultyHint" class="difficulty-hint">Só geometria plana · foco em área e perímetro.</small></div>
+        </section>
+        <section class="map-choice-panel">
+          <div class="section-heading"><span>04</span><div><b>ESCOLHA SEU MUNDO</b><small>Escolha entre a Cidade da Geometria ou o mapa clássico.</small></div></div>
+          <div class="world-choice-grid">
+            <button id="worldNewBtn" class="world-choice game-action active"><span class="world-icon">🌎</span><div><b>CIDADE DA GEOMETRIA</b><small>Centro, escola, labirinto, neve, deserto, vulcão, ruínas e arena.</small></div><span class="world-check">✓</span></button>
+            <button id="worldClassicBtn" class="world-choice game-action"><span class="world-icon">🏟️</span><div><b>MAPA CLÁSSICO</b><small>O mapa tradicional para quem quer uma arena simples.</small></div><span class="world-check">✓</span></button>
+          </div>
+        </section>
+      </main>
+
+      <aside class="start-side">
+        <section class="loadout-card">
+          <div class="side-heading"><span>05</span><div><b>SEU PLAYER</b><small>Personalize antes de jogar</small></div></div>
+          <div class="avatar-showcase"><div class="avatar-ring"><div class="avatar-core" id="startCharacterIcon">◈</div></div><div><b id="startCharacterName">Player</b><small id="startCharacterType">AGENTE DO LABORATÓRIO</small></div></div>
+          <div class="character-presets" aria-label="Modelos de personagem">
+            <button type="button" class="character-preset" data-start-preset="crewmate"><img src="./assets/characters/crewmate-red.png" alt="Prévia do tripulante vermelho"><span><b>TRIPULANTE</b><small>Vermelho</small></span></button>
+            <button type="button" class="character-preset" data-start-preset="bomberman"><img src="./assets/characters/bomberman-white.png" alt="Prévia do bombardeiro branco"><span><b>BOMBARDEIRO</b><small>Branco</small></span></button>
+            <button type="button" class="character-preset" data-start-preset="luigi"><span class="preset-emoji">🟢</span><span><b>LUIGI</b><small>Salto alto</small></span></button>
+            <button type="button" class="character-preset" data-start-preset="yoshi"><span class="preset-emoji">🦖</span><span><b>YOSHI</b><small>Dinossauro</small></span></button>
+            <button type="button" class="character-preset" data-start-preset="toad"><span class="preset-emoji">🍄</span><span><b>TOAD</b><small>Cogumelo</small></span></button>
+            <button type="button" class="character-preset" data-start-preset="creeper"><span class="preset-emoji">🟩</span><span><b>CREEPER</b><small>Blocos</small></span></button>
+          </div>
+          <div class="character-fields compact">
+            <input id="playerName" maxlength="14" placeholder="NOME DO JOGADOR" value="Player">
+            <select id="outfitSelect"><option value="lab">🧪 LABORATÓRIO</option><option value="astronaut">🚀 ASTRONAUTA</option><option value="ninja">🥷 NINJA</option><option value="robot">🤖 ROBÔ</option><option value="royal">👑 REAL</option><option value="explorer">🧭 EXPLORADOR</option><option value="pilot">✈️ PILOTO</option><option value="crewmate">🟥 TRIPULANTE VERMELHO</option><option value="bomberman">💣 BOMBARDEIRO BRANCO</option><option value="mario">🍄 SUPER MARIO</option><option value="luigi">🟢 LUIGI</option><option value="yoshi">🦖 YOSHI</option><option value="toad">🍄 TOAD</option><option value="creeper">🟩 CREEPER (MINECRAFT)</option><option value="sonic">💨 SONIC</option><option value="kirby">🩷 KIRBY</option><option value="pacman">🟡 PAC-MAN</option><option value="steve">🧱 STEVE (MINECRAFT)</option><option value="pikachu">⚡ PIKACHU</option></select>
+            <select id="headSelect"><option value="none">SEM ACESSÓRIO</option><option value="visor">VISOR</option><option value="antenna">ANTENA</option><option value="crown">COROA</option><option value="headphones">FONES</option><option value="cap">BONÉ</option><option value="goggles">ÓCULOS</option><option value="halo">AURÉOLA</option></select>
+            <select id="bodySelect"><option value="normal">CORPO NORMAL</option><option value="small">CORPO PEQUENO</option><option value="tall">CORPO ALTO</option><option value="strong">CORPO FORTE</option><option value="slim">CORPO MAGRO</option></select>
+            <select id="skinSelect"><option value="light">PELE CLARA</option><option value="medium">PELE MÉDIA</option><option value="tan">PELE MORENA</option><option value="brown">PELE CASTANHA</option><option value="dark">PELE ESCURA</option></select>
+            <select id="hairSelect"><option value="none">SEM CABELO</option><option value="short">CABELO CURTO</option><option value="curly">CACHEADO</option><option value="mohawk">MOICANO</option><option value="ponytail">RABO DE CAVALO</option></select>
+            <select id="hairColorSelect"><option value="black">CABELO PRETO</option><option value="brown">CASTANHO</option><option value="blond">LOIRO</option><option value="red">RUIVO</option><option value="blue">AZUL</option></select>
+            <select id="faceSelect"><option value="none">ROSTO LIMPO</option><option value="glasses">ÓCULOS</option><option value="mask">MÁSCARA</option><option value="respirator">RESPIRADOR</option></select>
+            <select id="backSelect"><option value="none">SEM EQUIPAMENTO</option><option value="backpack">MOCHILA</option><option value="jetpack">JETPACK</option><option value="cape">CAPA</option><option value="wings">ASAS</option></select>
+          </div>
+          <div class="color-label"><span>COR DO AGENTE</span><small id="startColorName">AZUL</small></div>
+          <div id="colorPicker" class="color-picker"></div>
+          <button id="enterBtn" class="primary big"><span>▶</span> JOGAR AGORA</button>
+          <div id="bootMessage" class="boot-message">Carregando sistema…</div>
+        </section>
+
+        <section class="quick-info-card">
+          <div class="side-heading"><span>06</span><div><b>COMO JOGAR</b><small>Os comandos principais da arena</small></div></div>
+          <div class="controls-mini"><span><kbd>WASD</kbd> MOVER</span><span><kbd>SHIFT</kbd> CORRER</span><span><kbd>SPACE</kbd> PULAR</span><span><kbd>ESC</kbd> MENU</span><span><kbd>V</kbd> CÂMERA</span><span><kbd>G</kbd> SEGURAR / SOLTAR BLOCO</span><span><kbd>F</kbd> CONGELAR BLOCO SEGURADO</span><span><kbd>B</kbd> CONSTRUIR</span></div>
+        </section>
+      </aside>
+    </div>
+    <footer class="start-footer"><span>GEOMETRIA LAB 3D</span><span>JOGO DESENVOLVIDO POR <b>DIMITRI XISTO</b></span><span>game.v64 • EXPANSÃO DO MAPA</span></footer>
+  </div>
+</section>
+
+<div id="hud" class="hidden">
+  <div class="brand glass"><b>GEOMETRIA LAB <span>3D</span></b><small id="modeLabel">COMBATE</small></div>
+  <div id="objectivePanel" class="objective glass collapsed">
+    <div class="objective-head">
+      <div class="objective-heading"><div class="eyebrow">OBJETIVO ATUAL</div><strong id="objective"></strong></div>
+      <button id="objectiveToggle" type="button" aria-label="Expandir objetivo atual" aria-expanded="false" title="Expandir objetivo">＋</button>
+    </div>
+    <div id="objectiveContent" class="objective-content">
+      <div class="objective-region"><span>📍</span><b id="currentRegion">CENTRO</b></div>
+      <div class="progress"><i id="objectiveProgress"></i></div>
+      <div class="objective-actions"><button id="missionsBtn" type="button">🎯 MISSÕES</button></div>
+    </div>
+  </div>
+  <div id="missionTracker" class="mission-tracker glass collapsed"><div class="mission-tracker-head"><b>MISSÕES</b><div class="mission-head-actions"><span id="missionTrackerMode">COMBATE</span><button id="missionTrackerToggle" type="button" aria-label="Expandir missões" aria-expanded="false" title="Expandir missões">＋</button></div></div><div id="missionTrackerList"></div></div>
+  <div class="stats glass"><div><span>VIDA</span><b id="hpText">100</b><div class="meter"><i id="hpBar"></i></div></div><div class="xp-progress-stat"><span>XP TOTAL · LV <b id="levelHud">1</b></span><b id="xpText">0</b><div class="meter level-meter"><i id="levelHudBar"></i></div><small id="levelHudNext">0 / 250 XP para o nível 2</small></div><div><span>ABATES</span><b id="killsText">0</b></div><div><span>ONLINE</span><b id="onlineText">SOLO</b></div></div>
+  <div id="enemyHud" class="enemy-hud glass hidden"><div><b id="enemyName">Geo-Beast</b><span id="enemyHPText">100</span></div><div class="meter enemy"><i id="enemyHPBar"></i></div><small>Q ou clique para resolver</small></div>
+  <div id="crosshair"><i></i></div>
+  <div id="interactionHint" class="hint glass hidden"></div>
+  <div id="activityHud" class="activity-hud glass collapsed" aria-live="polite">
+    <header class="activity-hud-head"><div class="activity-hud-title">🏝️ ILHA DOS DESAFIOS</div><button id="activityHudToggle" type="button" aria-label="Expandir atividades" aria-expanded="false" title="Expandir atividades">＋</button></header>
+    <div id="activityHudContent" class="activity-hud-content">
+      <p class="activity-intro">Duas atividades extras conectadas à praça central por uma ponte ciano.</p>
+      <button id="startFormHuntBtn" class="activity-action hunt"><span>🔷 CAÇA ÀS FORMAS</span><kbd>F6</kbd><small>Encontre os 10 sólidos dentro do labirinto.</small></button>
+      <div class="forms-found-row">Formas encontradas <b id="formsFoundCount">0 / 10</b></div>
+      <div class="activity-meter"><i id="formsFoundBar"></i></div>
+      <button id="startParkourBtn" class="activity-action parkour"><span>🏁 PARKOUR DE PLATAFORMAS</span><kbd>F7</kbd><small>Saltos, viga estreita, slime, piso instável, gelo e checkpoints.</small></button>
+      <div id="parkourStatus">Parkour: inicie na ilha ciano e alcance a chegada dourada.</div>
+    </div>
+  </div>
+  <div id="gameHelp" class="help glass"><kbd>WASD</kbd> mover · <kbd>SHIFT</kbd> correr · <kbd>SPACE</kbd> pular · <kbd>Q/LMB</kbd> atacar · <kbd>E</kbd> estudar · <kbd>B</kbd> construir · <kbd>P</kbd> catálogo · <kbd>RMB/X</kbd> remover · <kbd>V</kbd> trocar câmera · <kbd>T</kbd> física · <kbd>ESC</kbd> menu</div>
+  <div id="navigationGuide" class="navigation-guide glass collapsed">
+    <div class="navigation-guide-head"><b>🧭 GUIA DE NAVEGAÇÃO</b><button id="navigationGuideToggle" type="button" aria-label="Expandir guia de navegação" aria-expanded="false" title="Expandir guia de navegação">＋</button></div>
+    <div class="navigation-guide-body"><span>←</span><small>Explore as ilhas pelas pontes e mantenha-se nas áreas pavimentadas.</small><span>→</span></div>
+  </div>
+  <div id="cameraControls" class="camera-controls glass">
+    <div><b>🎥 VISTA</b><span id="cameraModeLabel">TERCEIRA PESSOA</span></div>
+    <select id="cameraMode" aria-label="Modo de câmera">
+      <option value="first">PRIMEIRA PESSOA</option>
+      <option value="third" selected>TERCEIRA PESSOA</option>
+      <option value="top">VISÃO SUPERIOR</option>
+      <option value="iso">ISOMÉTRICA</option>
+      <option value="side">VISÃO LATERAL</option>
+      <option value="fixed">CÂMERA FIXA</option>
+    </select>
+    <button id="cycleCamera" type="button">↻</button>
+  </div>
+  <div id="sandboxBuildQuick" class="sandbox-build-quick glass hidden"><b>🧱 SANDBOX</b><button id="quickBuildBtn" type="button">🔧 CONSTRUIR</button><button id="quickPhysicsBtn" type="button" aria-pressed="true">⚙ FÍSICA: LIGADA</button><button id="clearBuildsBtn" type="button" class="danger-build">🗑️ LIMPAR MINHAS</button></div>
+  <div id="buildHud" class="build-hud glass hidden"><div class="build-title"><b>🔧 MODO CONSTRUÇÃO ATIVO</b><span id="buildFigureName">CUBO</span></div><div class="build-actions"><button id="buildCatalogBtn" type="button">📐 ESCOLHER FIGURA</button><button id="buildPlaceBtn" type="button">➕ COLOCAR FIGURA</button><button id="buildPhysicsBtn" type="button" aria-pressed="true">⚙ FÍSICA: LIGADA</button><button id="buildExitBtn" type="button">✕ SAIR DA CONSTRUÇÃO</button><button id="buildClearBtn" type="button" class="danger-build">🗑️ LIMPAR MINHAS</button></div><small>WASD mover · clique esquerdo colocar · botão direito/X/DEL destruir · R/F girar · P escolher figura · G segurar/soltar · clique arremessa · roda aproxima/afasta · F congela/libera · gravidade + colisões</small></div>
+  <div id="inventory" class="inventory glass"><header class="inventory-head"><b>INVENTÁRIO RÁPIDO</b><button id="inventoryCatalogBtn" type="button" title="Abrir as 40 figuras geométricas">＋ 40 FORMAS</button><span>TECLAS 1–8</span></header><div id="inventorySelectionInfo" class="inventory-selection-info">Selecione uma peça para ver detalhes.</div><div id="slots" role="toolbar" aria-label="Inventário rápido de construções"></div></div>
+  <div id="watermark">JOGO DESENVOLVIDO POR <strong>DIMITRI XISTO</strong></div>
+  <div id="toast"></div>
+  <div id="levelUpToast" class="level-up-toast hidden" role="status" aria-live="polite"></div>
+  <section id="perfPanel" class="perf-panel glass hidden" aria-label="Diagnóstico de desempenho">
+    <header><b>DIAGNÓSTICO</b><small>F3 para fechar</small></header>
+    <div><span>FPS</span><strong id="perfFps">—</strong></div>
+    <div><span>Construções</span><strong id="perfBuilds">0</strong></div>
+    <div><span>Geo-Beasts vivos</span><strong id="perfEnemies">0</strong></div>
+    <div><span>Mundo</span><strong id="perfMode">—</strong></div>
+  </section>
+</div>
+
+<section id="menu" class="screen hidden"><div class="modal glass"><div class="eyebrow">PAUSADO</div><h2>MENU DO LABORATÓRIO</h2><p>Jogador, inimigos, física e cronômetros ficam congelados aqui.</p><div class="camera-menu"><b>🎥 ESCOLHER MODO DE VISTA</b><div class="camera-menu-grid"><button data-camera="first">1ª PESSOA</button><button data-camera="third">3ª PESSOA</button><button data-camera="top">SUPERIOR</button><button data-camera="iso">ISOMÉTRICA</button><button data-camera="side">LATERAL</button><button data-camera="fixed">FIXA</button></div></div><div class="menu-grid"><button id="resume" class="primary">CONTINUAR</button><button id="returnToSpawn">📍 VOLTAR AO SPAWN</button><button id="controlsSettings">🎮 MODIFICAR CONTROLES</button><button id="changeMode">TROCAR MODO</button><button id="menuMissions">🎯 MISSÕES</button><button id="customizeBtn">👤 PERSONALIZAR PERSONAGEM</button><button id="menuCatalog">CATÁLOGO</button><button id="menuLesson">AULA</button><button id="menuGeometryHub">🧠 TRILHAS DE GEOMETRIA</button><button id="menuWeb">PESQUISA WEB</button><button id="menuDebug">GEMINI DEBUG</button></div></div></section>
+
+<section id="geometryHub" class="screen hidden"><div class="modal glass geometry-hub"><div class="eyebrow">APRENDER JOGANDO</div><h2>TRILHAS DE GEOMETRIA</h2><p>Escolha uma trilha com 5 perguntas. A cada resposta você recebe um retorno, XP e uma dica para revisar o raciocínio.</p><div class="geometry-track-grid">
+<button type="button" data-training-mode="plane"><span>△</span><b>Geometria plana</b><small>Polígonos, área e perímetro</small></button>
+<button type="button" data-training-mode="spatial"><span>▣</span><b>Geometria espacial</b><small>Volume, sólidos e diagonais</small></button>
+<button type="button" data-training-mode="mixed"><span>◈</span><b>Desafio misto</b><small>Figuras planas e espaciais</small></button>
+<button type="button" data-training-mode="formulas"><span>π</span><b>Fórmulas relâmpago</b><small>Reconheça a fórmula correta</small></button>
+</div><div class="geometry-hub-actions"><button id="geometryHubCatalog" class="primary" type="button">EXPLORAR AS 40 FIGURAS</button><button id="geometryHubClose" class="ghost" type="button">VOLTAR</button></div></div></section>
+
+<section id="controlsModal" class="screen hidden"><div class="modal controls-modal glass"><div class="eyebrow">CONFIGURAÇÕES DE JOGO</div><h2>PERSONALIZAR CONTROLES</h2><p>Clique em um comando e pressione a tecla que deseja usar. As teclas ficam salvas neste navegador; se a tecla já estiver ocupada, as duas funções serão trocadas. Pressione Esc para cancelar a captura.</p><div id="controlsList" class="controls-list"></div><div class="controls-actions"><button id="resetControls" class="ghost" type="button">RESTAURAR PADRÃO</button><button id="closeControls" class="primary" type="button">VOLTAR AO MENU</button></div></div></section>
+
+<section id="characterModal" class="screen hidden"><div class="modal glass character-modal"><div class="eyebrow">PERSONAGEM</div><h2>ESTÚDIO DE PERSONALIZAÇÃO 3D</h2><p>Escolha um personagem clássico ou combine trajes e acessórios. Os modelos especiais têm silhuetas montadas em 3D.</p><div class="character-presets editor-presets" aria-label="Modelos especiais">
+<button type="button" class="character-preset" data-edit-preset="crewmate"><img src="./assets/characters/crewmate-red.png" alt="Tripulante vermelho"><span><b>TRIPULANTE</b><small>Inspirado em Among Us</small></span></button>
+<button type="button" class="character-preset" data-edit-preset="bomberman"><img src="./assets/characters/bomberman-white.png" alt="Bombardeiro branco"><span><b>BOMBARDEIRO</b><small>Estilo Bomberman</small></span></button>
+<button type="button" class="character-preset" data-edit-preset="luigi"><span class="preset-emoji">🟢</span><span><b>LUIGI</b><small>Salto alto</small></span></button>
+<button type="button" class="character-preset" data-edit-preset="yoshi"><span class="preset-emoji">🦖</span><span><b>YOSHI</b><small>Dinossauro 3D</small></span></button>
+<button type="button" class="character-preset" data-edit-preset="toad"><span class="preset-emoji">🍄</span><span><b>TOAD</b><small>Cogumelo 3D</small></span></button>
+<button type="button" class="character-preset" data-edit-preset="creeper"><span class="preset-emoji">🟩</span><span><b>CREEPER</b><small>Blocos 3D</small></span></button>
+</div><div class="character-editor"><input id="editPlayerName" maxlength="14" placeholder="NOME"><select id="editOutfit"><option value="lab">🧪 TRAJE LABORATÓRIO</option><option value="astronaut">🚀 ASTRONAUTA</option><option value="ninja">🥷 NINJA</option><option value="robot">🤖 ROBÔ</option><option value="royal">👑 REAL</option><option value="explorer">🧭 EXPLORADOR</option><option value="pilot">✈️ PILOTO</option><option value="crewmate">🟥 TRIPULANTE VERMELHO</option><option value="bomberman">💣 BOMBARDEIRO BRANCO</option><option value="mario">🍄 SUPER MARIO</option><option value="luigi">🟢 LUIGI</option><option value="yoshi">🦖 YOSHI</option><option value="toad">🍄 TOAD</option><option value="creeper">🟩 CREEPER (MINECRAFT)</option><option value="sonic">💨 SONIC</option><option value="kirby">🩷 KIRBY</option><option value="pacman">🟡 PAC-MAN</option><option value="steve">🧱 STEVE (MINECRAFT)</option><option value="pikachu">⚡ PIKACHU</option></select><select id="editHead"><option value="none">SEM ACESSÓRIO</option><option value="visor">VISOR</option><option value="antenna">ANTENA</option><option value="crown">COROA</option><option value="headphones">FONES</option><option value="cap">BONÉ</option><option value="goggles">ÓCULOS DE PROTEÇÃO</option><option value="halo">AURÉOLA</option></select><select id="editBody"><option value="normal">CORPO NORMAL</option><option value="small">CORPO PEQUENO</option><option value="tall">CORPO ALTO</option><option value="strong">CORPO FORTE</option><option value="slim">CORPO MAGRO</option></select><select id="editSkin"><option value="light">PELE CLARA</option><option value="medium">PELE MÉDIA</option><option value="tan">PELE MORENA</option><option value="brown">PELE CASTANHA</option><option value="dark">PELE ESCURA</option></select><select id="editHair"><option value="none">SEM CABELO</option><option value="short">CABELO CURTO</option><option value="curly">CABELO CACHEADO</option><option value="mohawk">MOICANO</option><option value="ponytail">RABO DE CAVALO</option></select><select id="editHairColor"><option value="black">CABELO PRETO</option><option value="brown">CABELO CASTANHO</option><option value="blond">CABELO LOIRO</option><option value="red">CABELO RUIVO</option><option value="blue">CABELO AZUL</option></select><select id="editFace"><option value="none">ROSTO LIMPO</option><option value="glasses">ÓCULOS</option><option value="mask">MÁSCARA</option><option value="respirator">RESPIRADOR</option></select><select id="editBack"><option value="none">SEM EQUIPAMENTO</option><option value="backpack">MOCHILA</option><option value="jetpack">JETPACK</option><option value="cape">CAPA</option><option value="wings">ASAS</option></select></div><div id="characterPreviewInfo" class="character-preview-info">Pré-visualização 3D ativa na arena.</div><div class="character-actions"><button id="saveCharacter" class="primary">SALVAR PERSONAGEM</button><button id="closeCharacter" class="ghost">CANCELAR</button></div></div></section>
+
+<section id="quiz" class="screen hidden"><div class="modal quiz"><div class="quiz-head"><div><div class="eyebrow">ATAQUE MATEMÁTICO</div><h2 id="quizTitle">Ataque</h2></div><div id="timer" class="timer">60</div></div><div class="tags"><span id="quizDiff"></span><span id="quizType"></span></div><div id="question" class="question"></div><div id="answers" class="answers"></div><div id="qFeedback"></div><button id="quizClose" class="ghost">fechar</button></div></section>
+
+<section id="catalog" class="screen hidden"><div class="modal catalog"><div class="eyebrow">CATÁLOGO DE GEOMETRIA</div><h2 id="catalogTitle">40 FIGURAS</h2><input id="figureSearch" class="search" placeholder="Pesquisar figura..."><div id="figureList" class="figure-list"></div><div id="figureDetail" class="figure-detail">Escolha uma figura.</div><button id="practiceFigure" class="primary">PRATICAR FIGURA</button><button id="catalogClose" class="ghost">fechar</button></div></section>
+
+<section id="lesson" class="screen hidden"><div class="modal glass"><div class="eyebrow">AULA RÁPIDA</div><h2>Como resolver uma questão</h2><div class="lesson-grid"><article><b>1. Identifique</b><p>Qual é a figura?</p></article><article><b>2. Escolha</b><p>Área, perímetro, volume ou diagonal?</p></article><article><b>3. Substitua</b><p>Troque as letras pelos valores.</p></article><article><b>4. Calcule</b><p>Resolva na ordem correta.</p></article><article><b>5. Unidade</b><p>Área →² • volume →³.</p></article><article><b>6. Confira</b><p>Veja se o resultado faz sentido.</p></article></div><button id="lessonClose" class="primary">FECHAR</button></div></section>
+
+<section id="web" class="screen hidden"><div class="modal web-modal"><div class="eyebrow">PESQUISA WEB</div><h2>Pesquisar conceito</h2><div class="web-row"><input id="webQuery" class="search" placeholder="Ex.: diagonal do cubo"><button id="webGo" class="primary">PESQUISAR</button></div><div id="webResults" class="web-results"></div><button id="webClose" class="ghost">fechar</button></div></section>
+
+
+
+<section id="missions" class="screen hidden"><div class="modal missions-modal"><div class="eyebrow">OBJETIVOS DA SESSÃO</div><h2>MISSÕES</h2><p>Complete tarefas para ganhar XP e aprender enquanto joga.</p><div id="missionModalList" class="mission-modal-list"></div><button id="missionsClose" class="primary">VOLTAR PARA A ARENA</button></div></section>
+
+<section id="debug" class="screen hidden"><div class="modal debug"><div class="eyebrow">GEMINI QA</div><h2>Diagnóstico do jogo</h2><p id="debugStatus">Os erros capturados ficam disponíveis para análise.</p><pre id="debugOut"></pre><button id="analyze" class="primary">ANALISAR ERROS</button><button id="autoFix">SUGERIR CORREÇÃO</button><button id="debugClose" class="ghost">fechar</button></div></section>
+
+<section id="palette" class="screen hidden"><div class="modal"><div class="eyebrow">CONSTRUTOR</div><h2>CATÁLOGO DE CONSTRUÇÃO — 40 FIGURAS</h2><input id="paletteSearch" class="search" placeholder="Pesquisar figura..."><div id="paletteGrid" class="palette-grid"></div><button id="paletteClose" class="ghost">fechar</button></div></section>
+
+
+<script src="./game.v63.js?v=69.0-performance"></script>
+<script>
+(function(){
+  const safeGet=(key)=>{try{return localStorage.getItem(key)}catch{return null}};
+  const safeSet=(key,value)=>{try{localStorage.setItem(key,String(value))}catch{}};
+  const savedCharacter=(()=>{try{return JSON.parse(safeGet("gl_character")||"null")||null}catch{return null}})();
+  if(savedCharacter&&(!savedCharacter.name||/^(dimitri( xisto)?|xisto|jogador)$/i.test(String(savedCharacter.name).trim()))){savedCharacter.name="Player";safeSet("gl_character",JSON.stringify(savedCharacter));}
+  const model={mode:"combat",difficulty:"easy",online:false,roomAction:null,mapMode:(safeGet("gl_map")||"new"),color:(Number(safeGet("gl_color"))||0x4c8dff),character:{name:"Player",outfit:"lab",head:"none",body:"normal",skin:"light",hair:"none",hairColor:"black",face:"none",back:"none",...(savedCharacter||{})}};
+  const startScreen=document.getElementById("startScreen"),hud=document.getElementById("hud"),diff=document.getElementById("difficultyBox"),rooms=document.getElementById("roomControls"),status=document.getElementById("roomStatus");
+  const worldNewBtn=document.getElementById("worldNewBtn"),worldClassicBtn=document.getElementById("worldClassicBtn");
+  function selectWorld(map){model.mapMode=map;safeSet("gl_map",map);worldNewBtn?.classList.toggle("active",map==="new");worldClassicBtn?.classList.toggle("active",map==="classic");}
+  selectWorld(model.mapMode==="classic"?"classic":"new");
+  worldNewBtn?.addEventListener("click",()=>selectWorld("new")); worldClassicBtn?.addEventListener("click",()=>selectWorld("classic"));
+  const colors=[
+    ["AZUL",0x4c8dff],["VERMELHO",0xff536b],["VERDE",0x39d98a],["AMARELO",0xffcf45],["ROXO",0x9b6cff],["CIANO",0x53dfff],
+    ["LARANJA",0xff9550],["ROSA",0xff6fa9],["BRANCO",0xf3f6ff],["PRETO",0x202936],["MARROM",0x9a6b50],["LIMA",0xb9ef4b]
+  ];
+  const missionPreviewData={
+    sandbox:[["ENGENHEIRO","Coloque 5 construções","+100 XP"],["GEÔMETRA","Use 3 figuras diferentes","+150 XP"],["ORGANIZAÇÃO","Destrua 3 construções","+100 XP"]],
+    learning:[["PESQUISADOR","Estude 3 figuras diferentes","+100 XP"],["CALCULISTA","Acerte 3 questões","+150 XP"],["TREINAMENTO","Resolva 5 questões","+120 XP"]],
+    combat:[["CAÇADOR","Derrote 4 Geo-Beasts","+250 XP"],["MIRA MATEMÁTICA","Acerte 3 ataques","+180 XP"],["VETERANO","Resolva 5 questões","+150 XP"]]
+  };
+  function updateStartMissions(mode){const list=document.getElementById("missionPreview");if(!list)return;const data=missionPreviewData[mode]||missionPreviewData.combat;list.innerHTML=data.map((m,i)=>`<div class="mission-card"><div class="m-top"><span class="m-index">0${i+1}</span><span class="m-reward">${m[2]}</span></div><b>${m[0]}</b><p>${m[1]}</p><div class="m-progress"><i style="width:0%"></i></div><div class="m-count">0 / ${i===0?(mode==="combat"?4:mode==="learning"?3:5):(i===1?3:5)}</div></div>`).join("");const sub=document.getElementById("missionPreviewSubtitle");if(sub)sub.textContent=mode==="combat"?"Objetivos de combate e domínio matemático":mode==="learning"?"Objetivos de estudo e prática":"Objetivos de construção e exploração";}
+  updateStartMissions(model.mode);
+  colors.forEach(([name,color],i)=>{
+    const savedColor=Number(safeGet("gl_color"))||0x4c8dff;
+    const b=document.createElement("button");b.className="color-dot"+(color===savedColor?" selected":"");b.title=name;b.dataset.color=color;b.style.background="#"+color.toString(16).padStart(6,"0");
+    b.onclick=()=>{document.querySelectorAll(".color-dot").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");model.color=color;safeSet("gl_color",String(color));document.getElementById("startColorName").textContent=name};
+    document.getElementById("colorPicker").appendChild(b);
+  });
+  document.querySelectorAll(".mode-card").forEach(b=>b.onclick=()=>{document.querySelectorAll(".mode-card").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");model.mode=b.dataset.mode;diff.style.display=model.mode==="combat"?"flex":"none";updateStartMissions(model.mode)});
+  const difficultyHints={easy:"Só geometria plana · foco em área e perímetro.",medium:"Só geometria plana · qualquer conteúdo e grandeza.",hard:"Só geometria espacial · sólidos, áreas, volumes e diagonais.",master:"Geometria plana + espacial · conteúdo misto e avançado."};
+  document.querySelectorAll(".diff").forEach(b=>b.onclick=()=>{document.querySelectorAll(".diff").forEach(x=>x.classList.remove("active"));b.classList.add("active");model.difficulty=b.dataset.difficulty;const h=document.getElementById("difficultyHint");if(h)h.textContent=difficultyHints[model.difficulty]||""});
+  document.getElementById("soloBtn").onclick=()=>{model.online=false;model.roomAction=null;rooms.classList.add("hidden");status.textContent="Modo solo selecionado.";document.getElementById("soloBtn").classList.add("active");document.getElementById("multiBtn").classList.remove("active")};
+  document.getElementById("multiBtn").onclick=()=>{model.online=true;rooms.classList.remove("hidden");document.getElementById("multiBtn").classList.add("active");document.getElementById("soloBtn").classList.remove("active")};
+  document.getElementById("createRoom").onclick=()=>{
+    const password=document.getElementById("hostPassword").value.trim();
+    if(!password){status.textContent="Digite uma senha para criar a sala.";return}
+    const code=(document.getElementById("hostCode").value.trim().toLowerCase()||Math.random().toString(36).slice(2,8));
+    model.online=true;model.roomAction={action:"create",code,password};status.textContent="Sala "+code.toUpperCase()+" configurada. Agora clique em JOGAR AGORA.";
+  };
+  document.getElementById("joinRoom").onclick=()=>{
+    const code=document.getElementById("roomInput").value.trim().toLowerCase(),password=document.getElementById("joinPassword").value;
+    if(!code||!password){status.textContent="Digite o código e a senha da sala.";return}
+    model.online=true;model.roomAction={action:"join",code,password};status.textContent="Entrando na sala "+code.toUpperCase()+" ao iniciar.";
+  };
+  const charName=document.getElementById("playerName"),outfit=document.getElementById("outfitSelect"),head=document.getElementById("headSelect"),body=document.getElementById("bodySelect"),skin=document.getElementById("skinSelect"),hair=document.getElementById("hairSelect"),hairColor=document.getElementById("hairColorSelect"),face=document.getElementById("faceSelect"),back=document.getElementById("backSelect");
+  const startCharacterIcon=document.getElementById("startCharacterIcon"),startCharacterType=document.getElementById("startCharacterType");
+  function updateStartCharacterPreview(){
+    const selected=outfit.value;
+    const presets={crewmate:{src:"./assets/characters/crewmate-red.png",label:"TRIPULANTE VERMELHO"},bomberman:{src:"./assets/characters/bomberman-white.png",label:"BOMBARDEIRO BRANCO"}};
+    document.querySelectorAll("[data-start-preset]").forEach(b=>b.classList.toggle("active",b.dataset.startPreset===selected));
+    if(presets[selected]){startCharacterIcon.classList.add("image-mode");startCharacterIcon.innerHTML=`<img src="${presets[selected].src}" alt="${presets[selected].label}">`;startCharacterType.textContent=presets[selected].label;}
+    else{const labels={lab:"AGENTE DO LABORATÓRIO",astronaut:"ASTRONAUTA",ninja:"NINJA",robot:"ROBÔ",royal:"PERSONAGEM REAL",explorer:"EXPLORADOR",pilot:"PILOTO",mario:"SUPER MARIO",luigi:"LUIGI",yoshi:"YOSHI",toad:"TOAD",creeper:"CREEPER · MINECRAFT",sonic:"SONIC THE HEDGEHOG",kirby:"KIRBY",pacman:"PAC-MAN",steve:"STEVE · MINECRAFT",pikachu:"PIKACHU"};const symbols={mario:"M",luigi:"L",yoshi:"Y",toad:"T",creeper:"▦",sonic:"S",kirby:"K",pacman:"●",steve:"▦",pikachu:"⚡"};startCharacterIcon.classList.remove("image-mode");startCharacterIcon.textContent=symbols[selected]||"◈";startCharacterType.textContent=labels[selected]||"AGENTE DO LABORATÓRIO";}
+  }
+  function fillStartCharacter(c){const x={name:"Player",outfit:"lab",head:"none",body:"normal",skin:"light",hair:"none",hairColor:"black",face:"none",back:"none",...(c||{})};if(!x.name||/^(dimitri( xisto)?|xisto|jogador)$/i.test(String(x.name).trim()))x.name="Player";charName.value=x.name;outfit.value=x.outfit;head.value=x.head;body.value=x.body;skin.value=x.skin;hair.value=x.hair;hairColor.value=x.hairColor;face.value=x.face;back.value=x.back;updateStartCharacterPreview();}
+  function syncCharacterForm(){const enteredName=(charName.value.trim()||"Player").slice(0,14);model.character={name:/^(dimitri( xisto)?|xisto|jogador)$/i.test(enteredName)?"Player":enteredName,outfit:outfit.value,head:head.value,body:body.value,skin:skin.value,hair:hair.value,hairColor:hairColor.value,face:face.value,back:back.value};updateStartCharacterPreview();}
+  document.querySelectorAll("[data-start-preset]").forEach(b=>b.addEventListener("click",()=>{outfit.value=b.dataset.startPreset;syncCharacterForm()}));
+  [charName,outfit,head,body,skin,hair,hairColor,face,back].forEach(el=>el.addEventListener("input",syncCharacterForm));
+  charName.addEventListener("input",()=>{const n=charName.value.trim();document.getElementById("startCharacterName").textContent=(!n||/^(dimitri( xisto)?|xisto|jogador)$/i.test(n))?"Player":n});
+  [outfit,head,body,skin,hair,hairColor,face,back].forEach(el=>el.addEventListener("change",syncCharacterForm));
+  fillStartCharacter(model.character);syncCharacterForm();
+  const initialColor=colors.find(x=>x[1]===model.color);if(initialColor)document.getElementById("startColorName").textContent=initialColor[0];
+  if(window.__GL_REFRESH_PROGRESS__){window.__GL_REFRESH_PROGRESS__()}else{const canonical=safeGet("gl_profile_xp_v52")??safeGet("gl_profile_xp_v51"),vals=["gl_profile_xp_v51","gl_profile_xp_v50","gl_xp_v49_total","gl_xp_v48_total","gl_xp","gl_xp_total"].map(k=>Number(safeGet(k)||0)).filter(Number.isFinite),xp=canonical!==null&&Number.isFinite(Number(canonical))?Math.max(0,Number(canonical)):Math.max(0,...vals),level=Math.floor(xp/250)+1,inside=xp-(level-1)*250;document.getElementById("startXp").textContent=xp.toLocaleString("pt-BR");document.getElementById("startLevel").textContent=level;const bar=document.getElementById("startXpBar"),next=document.getElementById("startXpNext");if(bar)bar.style.width=(inside/250*100)+"%";if(next)next.textContent=`${inside} / 250 XP · faltam ${250-inside} XP para o nível ${level+1}`}document.getElementById("startCharacterName").textContent=model.character.name;
+  document.getElementById("enterBtn").onclick=()=>{
+    syncCharacterForm();
+    safeSet("gl_character",JSON.stringify(model.character));safeSet("gl_color",String(model.color));safeSet("gl_map",model.mapMode)
+    if(!window.__GL_ENGINE_READY__){
+      const detail=window.__GL_ENGINE_ERROR__||window.__GL_WEBGL_ERROR__||"verifique se o navegador permite WebGL e se Three.js carregou";
+      status.textContent="MOTOR 3D: "+detail;
+      status.className="boot-message error";
+      return;
+    }
+    startScreen.classList.add("hidden");hud.classList.remove("hidden");
+    window.__GL_START__={...model,character:{...model.character}};
+    window.dispatchEvent(new CustomEvent("geometria-lab-start",{detail:window.__GL_START__}));
+  };
+})();
+</script>
+<script>
+(function(){
+  const msg=document.getElementById("bootMessage");
+  const btn=document.getElementById("enterBtn");
+  const systemText=document.querySelector(".top-status span:nth-child(2)"),systemDot=document.querySelector(".top-status .status-dot"),systemOk=document.querySelector(".top-status .status-ok");
+  if(window.__GL_ENGINE_READY__){ if(msg){msg.textContent="MOTOR 3D PRONTO ✓";msg.className="boot-message ready";} if(btn)btn.disabled=false;if(systemText)systemText.textContent="MOTOR PRONTO";if(systemDot)systemDot.style.background="#43bf78";if(systemOk){systemOk.textContent="●";systemOk.style.color="#23985b";} }
+  else if(window.__GL_ENGINE_ERROR__){ if(msg){msg.textContent="FALHA NO MOTOR 3D: "+String(window.__GL_ENGINE_ERROR__).split("\n")[0];msg.className="boot-message error";} if(btn)btn.disabled=false;if(systemText)systemText.textContent="MOTOR COM ERRO";if(systemDot)systemDot.style.background="#e34d5b";if(systemOk){systemOk.textContent="!";systemOk.style.color="#e34d5b";} }
+  else { if(msg){msg.textContent="MOTOR 3D NÃO CARREGADO";msg.className="boot-message error";} if(btn)btn.disabled=false;if(systemText)systemText.textContent="MOTOR OFFLINE";if(systemDot)systemDot.style.background="#e34d5b";if(systemOk){systemOk.textContent="!";systemOk.style.color="#e34d5b";} }
+})();
+</script>
+</body>
+</html>
